@@ -27,9 +27,8 @@ const testRule = (rule, subject) => {
   throw new Error('Invalid include / exclude rule');
 };
 
-const handleErrors = (error, compilation, cb) => {
+const handleErrors = (error, compilation) => {
   compilation.errors.push(new Error(error));
-  cb(new Error(error));
 };
 
 const isIgnoredFile = file =>
@@ -83,10 +82,10 @@ module.exports = class S3Plugin {
     this.options.directory =
       compiler.options.output.path || compiler.options.output.context || '.';
 
-    compiler.plugin('after-emit', (compilation, cb) => {
+    compiler.hooks.afterEmit.tap('S3Plugin', compilation => {
       if (!hasRequiredUploadOpts) {
         const error = `S3Plugin-RequiredS3UploadOpts: ${REQUIRED_S3_UP_OPTS.join(', ')}`;
-        handleErrors(error, compilation, cb);
+        handleErrors(error, compilation);
       }
 
       getAssetFiles(compilation)
@@ -94,7 +93,7 @@ module.exports = class S3Plugin {
         .then(files => this.uploadFiles(files))
         .then(() => this.invalidateCloudfront())
         .then(() => cb())
-        .catch(e => handleErrors(e, compilation, cb));
+        .catch(e => handleErrors(e, compilation));
     });
   }
 
